@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-agri-dark: #0f291e;
+    --color-agri-primary: #1b4d3e;
+    --color-agri-accent: #2d6a4f;
+    --color-agri-light: #52b788;
+    --color-agri-pale: #d8f3dc;
+    --color-earth-amber: #b07d30;
+  }
+
+  body {
+    background-color: #f6f9f6;
+    color: #1e293b;
+    /* Pan-Indian script fallback font family stack */
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
+      "Nirmala UI", "Gautami", "Vani", "Latha", "Tunga", "Vrinda", "Raavi", "Shruti", 
+      "Kartika", "Kalinga", "Urdu Typesetting", "Noto Sans", Arial, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+/* RTL Support for Urdu, Kashmiri, and Sindhi */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+/* Custom scrollbars for dashboard widgets and hourly strips */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Subtle animations for weather indicators */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.03); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+
+@keyframes rain-drip {
+  0% { transform: translateY(-3px); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(6px); opacity: 0; }
+}
+
+.animate-rain-drop {
+  animation: rain-drip 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

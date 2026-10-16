@@ -1,0 +1,748 @@
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Camera,
+  X,
+  RotateCw,
+  Sparkles,
+  AlertCircle,
+  Check,
+  Zap,
+  ZapOff,
+  UploadCloud,
+  RefreshCw,
+  VideoOff,
+  ShieldAlert
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { analyzePlantImage } from '../../services/plantDiseaseService';
+
+export default function CameraScanner({ onCapture, onClose, onSwitchToUpload }) {
+  const { t } = useTranslation();
+  
+  // DOM & Media Refs
+  const videoRef = useRef(null);
+  const activeStreamRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const initIdRef = useRef(0);
+
+  // Component State
+  // Status: 'requesting' | 'starting' | 'ready' | 'error'
+  const [cameraStatus, setCameraStatus] = useState('requesting');
+  // Error types: 'permission_denied' | 'not_found' | 'in_use' | 'insecure_context' | 'unsupported' | 'generic'
+  const [errorType, setErrorType] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  const [facingMode, setFacingMode] = useState('environment'); // 'environment' (rear) | 'user' (front)
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [hasTorch, setHasTorch] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
+  const [availableCamerasCount, setAvailableCamerasCount] = useState(1);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [scanError, setScanError] = useState(null);
+  const [analysisStep, setAnalysisStep] = useState(1);
+
+  // Stop all active camera tracks cleanly without triggering re-render loops
+  const stopActiveStream = useCallback(() => {
+    if (activeStreamRef.current) {
+      activeStreamRef.current.getTracks().forEach(track => {
+        try {
+          track.stop();
+        } catch (e) {
+          console.warn('AgriSense: Error stopping media track:', e);
+        }
+      });
+      activeStreamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setTorchOn(false);
+  }, []);
+
+  // Map camera hardware / browser errors to human-friendly feedback
+  const categorizeCameraError = useCallback((err) => {
+    if (!err) {
+      setErrorType('generic');
+      setErrorMessage(t('plantHealth.cameraGenericError', 'Unable to access device camera. Please check camera settings or try uploading a photo.'));
+      return;
+    }
+
+    const errName = err.name || '';
+    const rawMessage = err.message || '';
+
+    if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+      setErrorType('permission_denied');
+      setErrorMessage(t('plantHealth.cameraPermissionDenied', 'Camera permission was blocked. Please tap the lock/camera icon in your browser address bar and grant camera access for this site.'));
+    } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+      setErrorType('not_found');
+      setErrorMessage(t('plantHealth.cameraNotFound', 'No camera hardware detected on this device. Please connect a camera or choose the image upload option.'));
+    } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+      setErrorType('in_use');
+      setErrorMessage(t('plantHealth.cameraInUse', 'Camera is currently locked or in use by another application or browser tab. Please close conflicting apps and retry.'));
+    } else if (errName === 'OverconstrainedError' || errName === 'ConstraintNotSatisfiedError') {
+      setErrorType('generic');
+      setErrorMessage(t('plantHealth.cameraOverconstrained', 'The requested camera resolution or lens is unavailable. Switching to default camera mode.'));
+    } else {
+      setErrorType('generic');
+      setErrorMessage(rawMessage || t('plantHealth.cameraFailed', 'Failed to initialize camera video feed.'));
+    }
+  }, [t]);
+
+  // Start real camera using navigator.mediaDevices.getUserMedia with fallback tiers
+  const startCamera = useCallback(async (preferredFacing) => {
+    const thisInitId = ++initIdRef.current;
+
+    if (!isMountedRef.current) return;
+
+    // Cleanly stop any existing stream first
+    stopActiveStream();
+
+    setCameraStatus('requesting');
+    setErrorType(null);
+    setErrorMessage(null);
+    setVideoDimensions({ width: 0, height: 0 });
+
+    // 1. Insecure Context Check (Camera requires HTTPS or localhost)
+    if (
+      typeof window !== 'undefined' &&
+      !window.isSecureContext &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      if (thisInitId !== initIdRef.current || !isMountedRef.current) return;
+      setCameraStatus('error');
+      setErrorType('insecure_context');
+      setErrorMessage(
+        t('plantHealth.insecureContext', 'Camera access requires a secure connection (HTTPS) or localhost. Please access AgriSense via HTTPS or use the file upload option.')
+      );
+      return;
+    }
+
+    // 2. MediaDevices API Availability Check
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      if (thisInitId !== initIdRef.current || !isMountedRef.current) return;
+      setCameraStatus('error');
+      setErrorType('unsupported');
+      setErrorMessage(
+        t('plantHealth.unsupportedBrowser', 'Camera access is not supported by your current browser. Please update your browser or upload a leaf photograph directly.')
+      );
+      return;
+    }
+
+    // 3. Multi-Tier Constraint Negotiation
+    const constraintTiers = [
+      // Tier 1: Prefer requested facingMode with standard 720p resolution
+      {
+        video: {
+          facingMode: { ideal: preferredFacing },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      },
+      // Tier 2: Prefer requested facingMode with default resolution
+      {
+        video: {
+          facingMode: { ideal: preferredFacing }
+        },
+        audio: false
+      },
+      // Tier 3: Any available video device
+      {
+        video: true,
+        audio: false
+      }
+    ];
+
+    let mediaStream = null;
+    let finalError = null;
+
+    for (let i = 0; i < constraintTiers.length; i++) {
+      if (thisInitId !== initIdRef.current || !isMountedRef.current) return;
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraintTiers[i]);
+        if (mediaStream) break;
+      } catch (err) {
+        finalError = err;
+        // If permission was explicitly denied, do not loop through further tiers
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          break;
+        }
+      }
+    }
+
+    // If cancelled or unmounted while awaiting getUserMedia, release stream immediately
+    if (thisInitId !== initIdRef.current || !isMountedRef.current) {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+      }
+      return;
+    }
+
+    // If all tiers failed, show categorized error
+    if (!mediaStream) {
+      setCameraStatus('error');
+      categorizeCameraError(finalError);
+      return;
+    }
+
+    // Stream successfully acquired
+    activeStreamRef.current = mediaStream;
+    setCameraStatus('starting');
+
+    // Inspect video track capabilities (torch, facingMode)
+    try {
+      const videoTrack = mediaStream.getVideoTracks()[0];
+      const capabilities = videoTrack?.getCapabilities ? videoTrack.getCapabilities() : {};
+      setHasTorch(Boolean(capabilities?.torch));
+    } catch {
+      setHasTorch(false);
+    }
+
+    // Enumerate available video inputs to check if multiple cameras exist
+    try {
+      if (navigator.mediaDevices.enumerateDevices) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+        if (isMountedRef.current) {
+          setAvailableCamerasCount(videoInputs.length);
+        }
+      }
+    } catch {
+      // Ignore enumeration failure
+    }
+
+    // Attach stream to video element
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.srcObject = mediaStream;
+
+    // Helper to confirm video has valid dimensions and frames
+    const markVideoReady = () => {
+      if (thisInitId !== initIdRef.current || !isMountedRef.current) return;
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        setVideoDimensions({
+          width: video.videoWidth,
+          height: video.videoHeight
+        });
+        setCameraStatus('ready');
+      }
+    };
+
+    // Safely trigger video playback without unhandled promise rejection
+    try {
+      await video.play();
+      if (video.videoWidth > 0) {
+        markVideoReady();
+      }
+    } catch (playErr) {
+      // AbortError is benign if stream was reloaded or replaced
+      if (playErr.name !== 'AbortError') {
+        console.warn('AgriSense: Video element play notice:', playErr);
+      }
+    }
+  }, [categorizeCameraError, stopActiveStream, t]);
+
+  // Video metadata event listener
+  const handleVideoMetadata = () => {
+    const video = videoRef.current;
+    if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+      setVideoDimensions({
+        width: video.videoWidth,
+        height: video.videoHeight
+      });
+      setCameraStatus('ready');
+    }
+  };
+
+  // Mount effect to start camera and cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    startCamera(facingMode);
+
+    return () => {
+      isMountedRef.current = false;
+      initIdRef.current++;
+      stopActiveStream();
+    };
+  }, [facingMode, startCamera, stopActiveStream]);
+
+  // Listen for Escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        stopActiveStream();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, stopActiveStream]);
+
+  // Switch between front and rear cameras
+  const handleToggleFacingMode = () => {
+    setFacingMode(prev => (prev === 'environment' ? 'user' : 'environment'));
+  };
+
+  // Toggle torch / flash if supported by mobile hardware
+  const handleToggleTorch = async () => {
+    if (!activeStreamRef.current) return;
+    const track = activeStreamRef.current.getVideoTracks()[0];
+    if (!track) return;
+
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: !torchOn }]
+      });
+      setTorchOn(!torchOn);
+    } catch (e) {
+      console.warn('AgriSense: Torch constraint application failed:', e);
+    }
+  };
+
+  // High-precision leaf frame capture
+  const handleCapture = () => {
+    const video = videoRef.current;
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+      console.warn('AgriSense: Frame capture rejected — video frame not ready.');
+      return;
+    }
+
+    try {
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+
+      // Mirror front-facing user camera preview so captured image matches viewfinder
+      if (facingMode === 'user') {
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
+      }
+
+      ctx.drawImage(video, 0, 0, width, height);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+      // Stop camera hardware tracks immediately while user reviews photo
+      stopActiveStream();
+
+      setCapturedImage(dataUrl);
+    } catch (err) {
+      console.error('AgriSense: Frame capture error:', err);
+    }
+  };
+
+  // Retake photo: clear captured frame and restart camera
+  const handleRetake = () => {
+    setCapturedImage(null);
+    setScanError(null);
+    setIsAnalyzing(false);
+    startCamera(facingMode);
+  };
+
+  // Run AI leaf disease analysis directly inside the scanner preview
+  const handleAnalyzeLeaf = async (forceAnalysis = false) => {
+    if (!capturedImage) return;
+
+    setIsAnalyzing(true);
+    setScanError(null);
+    setAnalysisStep(1);
+
+    const stepTimer1 = setTimeout(() => setAnalysisStep(2), 350);
+    const stepTimer2 = setTimeout(() => setAnalysisStep(3), 750);
+
+    try {
+      const result = await analyzePlantImage(capturedImage, null);
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+
+      if (!result.success && !forceAnalysis) {
+        setScanError(result.error || t('plantHealth.cameraGenericError', 'Failed to assess leaf specimen.'));
+        setIsAnalyzing(false);
+      } else {
+        setIsAnalyzing(false);
+        stopActiveStream();
+        onCapture(capturedImage, result);
+      }
+    } catch (err) {
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+      setScanError(err.message || 'Image analysis failed. Please retry.');
+      setIsAnalyzing(false);
+    }
+  };
+
+
+  // Close scanner cleanly
+  const handleClose = () => {
+    stopActiveStream();
+    onClose();
+  };
+
+  // Switch to upload photo fallback
+  const handleSwitchToUpload = () => {
+    stopActiveStream();
+    if (onSwitchToUpload) {
+      onSwitchToUpload();
+    } else {
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl bg-slate-900 rounded-3xl shadow-2xl border border-emerald-900/40 overflow-hidden flex flex-col max-h-[92vh]">
+        {/* Header */}
+        <div className="p-4 sm:p-5 flex items-center justify-between border-b border-slate-800 bg-slate-900/90 text-white z-20">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-white shrink-0">
+              <Camera className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-sm sm:text-base font-bold">
+                  {t('plantHealth.liveScanner', 'Live Leaf Disease Scanner')}
+                </h3>
+                {cameraStatus === 'ready' && !capturedImage && (
+                  <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-bold text-emerald-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>LIVE</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-emerald-400">
+                {t('plantHealth.holdPhone', 'Hold phone steady 15-25cm above affected leaf blade')}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            {/* Torch toggle button */}
+            {hasTorch && !capturedImage && cameraStatus === 'ready' && (
+              <button
+                onClick={handleToggleTorch}
+                className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                  torchOn ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+                title="Toggle Torch / Flashlight"
+              >
+                {torchOn ? <Zap className="w-4 h-4" /> : <ZapOff className="w-4 h-4" />}
+              </button>
+            )}
+
+            {/* Switch Camera Button (Front / Rear) */}
+            {!capturedImage && availableCamerasCount > 1 && (
+              <button
+                onClick={handleToggleFacingMode}
+                className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+                title={`Switch Camera (Currently: ${facingMode === 'environment' ? 'Rear' : 'Front'})`}
+              >
+                <RotateCw className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Close Button */}
+            <button
+              onClick={handleClose}
+              className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+              title="Close Scanner (Esc)"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Viewport Area */}
+        <div className="relative flex-1 bg-black min-h-[360px] sm:min-h-[440px] flex items-center justify-center overflow-hidden">
+          {/* 1. Requesting Permission State */}
+          {cameraStatus === 'requesting' && !capturedImage && (
+            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-white text-center space-y-4 z-10 animate-in fade-in duration-150">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shadow-lg shadow-emerald-500/5">
+                <Camera className="w-7 h-7 animate-pulse text-emerald-400" />
+              </div>
+              <div className="space-y-1.5 max-w-sm">
+                <h4 className="text-base font-bold text-white">
+                  {t('plantHealth.requestingPermTitle', 'Requesting Camera Access')}
+                </h4>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {t('plantHealth.requestingPermDesc', 'Please select "Allow" when prompted by your browser to view the live optical feed.')}
+                </p>
+              </div>
+              <div className="inline-flex items-center space-x-2 text-[11px] text-emerald-400 font-mono bg-emerald-950/60 px-3 py-1.5 rounded-full border border-emerald-800/40">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>{t('plantHealth.awaitingAccess', 'Awaiting camera permission...')}</span>
+              </div>
+            </div>
+          )}
+
+          {/* 2. Starting Camera State */}
+          {cameraStatus === 'starting' && !capturedImage && (
+            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-white text-center space-y-3 z-10 animate-in fade-in duration-150">
+              <div className="w-10 h-10 border-3 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-emerald-300">
+                  {t('plantHealth.startingCameraTitle', 'Connecting Video Stream')}
+                </h4>
+                <p className="text-xs text-slate-400">
+                  {t('plantHealth.startingCameraDesc', 'Synchronizing sensor resolution and optical parameters...')}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 3. Camera Error / Blocked States with Direct Actions */}
+          {cameraStatus === 'error' && (
+            <div className="p-6 text-center max-w-md text-white space-y-4 z-10 animate-in fade-in duration-200">
+              <div className="w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/20">
+                {errorType === 'permission_denied' ? (
+                  <ShieldAlert className="w-7 h-7 text-rose-400" />
+                ) : errorType === 'not_found' ? (
+                  <VideoOff className="w-7 h-7 text-amber-400" />
+                ) : (
+                  <AlertCircle className="w-7 h-7 text-rose-400" />
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <h4 className="text-base font-bold text-white">
+                  {errorType === 'permission_denied'
+                    ? t('plantHealth.permDeniedTitle', 'Camera Permission Denied')
+                    : errorType === 'not_found'
+                    ? t('plantHealth.noCameraTitle', 'No Camera Detected')
+                    : errorType === 'in_use'
+                    ? t('plantHealth.cameraBusyTitle', 'Camera In Use')
+                    : errorType === 'insecure_context'
+                    ? t('plantHealth.insecureTitle', 'Secure Connection Required')
+                    : t('plantHealth.cameraUnavailableTitle', 'Camera Unavailable')}
+                </h4>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {errorMessage}
+                </p>
+              </div>
+
+              {/* Helpful tips depending on error */}
+              {errorType === 'permission_denied' && (
+                <div className="p-3 bg-slate-800/80 rounded-xl text-[11px] text-slate-300 text-left space-y-1 border border-slate-700">
+                  <strong className="block text-emerald-400 font-semibold">How to grant permission:</strong>
+                  <p>1. Click the lock / settings icon next to the address bar.</p>
+                  <p>2. Set <strong>Camera</strong> to <strong>Allow</strong>.</p>
+                  <p>3. Tap "Try Again" below.</p>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+                <button
+                  onClick={() => startCamera(facingMode)}
+                  className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-md"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>{t('plantHealth.retryCamera', 'Try Again')}</span>
+                </button>
+
+                <button
+                  onClick={handleSwitchToUpload}
+                  className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition-colors cursor-pointer border border-slate-700"
+                >
+                  <UploadCloud className="w-3.5 h-3.5 text-blue-400" />
+                  <span>{t('plantHealth.uploadInstead', 'Upload Photo Instead')}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 4. Live Video Preview with Target Viewfinder Reticle */}
+          {!capturedImage && (
+            <>
+              <video
+                ref={videoRef}
+                playsInline
+                autoPlay
+                muted
+                onLoadedMetadata={handleVideoMetadata}
+                onCanPlay={handleVideoMetadata}
+                className={`w-full h-full object-cover transition-opacity duration-300 ${
+                  cameraStatus === 'ready' ? 'opacity-100' : 'opacity-0'
+                } ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+              />
+
+              {/* Agronomic Target Reticle (Only visible when camera is ready) */}
+              {cameraStatus === 'ready' && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-6 select-none">
+                  <div className="relative w-64 h-64 sm:w-80 sm:h-80 border-2 border-emerald-400/40 rounded-3xl transition-all">
+                    {/* Corner Target Markers */}
+                    <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl shadow-xs" />
+                    <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl shadow-xs" />
+                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl shadow-xs" />
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-xl shadow-xs" />
+
+                    {/* Subtle scanning laser line */}
+                    <div className="absolute inset-x-3 top-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-pulse shadow-md shadow-emerald-400/50" />
+
+                    {/* Centered Crosshair */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
+                      <div className="w-6 h-0.5 bg-emerald-400" />
+                      <div className="h-6 w-0.5 bg-emerald-400 -ml-3" />
+                    </div>
+
+                    <span className="absolute -bottom-9 left-1/2 -translate-x-1/2 text-[11px] font-semibold text-emerald-300 bg-slate-900/90 px-3.5 py-1 rounded-full whitespace-nowrap border border-emerald-500/30 shadow-md">
+                      {t('plantHealth.centerLeaf', 'Center Leaf in Frame')}
+                    </span>
+                  </div>
+
+                  {/* Real-time Hardware Stream Badge */}
+                  {videoDimensions.width > 0 && (
+                    <div className="absolute top-4 left-4 bg-slate-950/80 backdrop-blur-xs text-[10px] font-mono text-emerald-300 px-2.5 py-1 rounded-md border border-emerald-500/30 flex items-center space-x-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span>
+                        {videoDimensions.width} × {videoDimensions.height} • {facingMode === 'environment' ? 'Rear' : 'Front'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* 5. Captured Leaf Inspection Review */}
+          {capturedImage && (
+            <div className="relative w-full h-full flex items-center justify-center bg-black animate-in fade-in duration-200">
+              <img
+                src={capturedImage}
+                alt="Captured Leaf Specimen"
+                className="max-h-[70vh] w-auto object-contain rounded-xl shadow-2xl"
+              />
+
+              {/* Status Header Badge */}
+              {!isAnalyzing && !scanError && (
+                <div className="absolute top-4 left-4 bg-emerald-900/95 text-emerald-100 text-xs px-3.5 py-1.5 rounded-full border border-emerald-500/50 font-semibold flex items-center space-x-2 shadow-lg backdrop-blur-xs">
+                  <Check className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                  <span>{t('plantHealth.sampleCaptured', 'Sample Captured — Ready for Inspection')}</span>
+                </div>
+              )}
+
+              {/* In-Modal Analyzing Overlay with Real-Time Step Feedback */}
+              {isAnalyzing && (
+                <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-white text-center space-y-4 z-30 animate-in fade-in duration-150">
+                  <div className="relative">
+                    <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin" />
+                    <Sparkles className="w-6 h-6 text-emerald-300 absolute inset-0 m-auto animate-pulse" />
+                  </div>
+
+                  <div className="space-y-1.5 max-w-sm">
+                    <h4 className="text-base font-bold text-white">
+                      Analyzing Leaf Pathology
+                    </h4>
+                    <p className="text-xs text-emerald-300 font-medium">
+                      {analysisStep === 1 && 'Checking image clarity & leaf structure...'}
+                      {analysisStep === 2 && 'Scanning foliar tissue for necrotic & chlorotic lesions...'}
+                      {analysisStep >= 3 && 'Evaluating against plant disease classification model...'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-1.5 text-[11px] text-slate-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span>Running Agro-Vision Inference Engine...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Diagnostic Error Notice Overlay */}
+              {scanError && !isAnalyzing && (
+                <div className="absolute inset-x-4 bottom-4 p-4 rounded-2xl bg-rose-950/95 border border-rose-500/80 text-rose-100 text-xs shadow-2xl backdrop-blur-md space-y-3 z-30 animate-in slide-in-from-bottom duration-200">
+                  <div className="flex items-start space-x-2.5">
+                    <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block font-bold text-white text-sm">Image Assessment Notice:</strong>
+                      <p className="text-rose-200 mt-0.5 leading-relaxed">{scanError}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-rose-800/60">
+                    <button
+                      onClick={handleRetake}
+                      className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>{t('plantHealth.retakePhoto', 'Retake Photo')}</span>
+                    </button>
+
+                    <button
+                      onClick={handleSwitchToUpload}
+                      className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition-colors cursor-pointer border border-slate-700"
+                    >
+                      <UploadCloud className="w-3.5 h-3.5 text-blue-400" />
+                      <span>{t('plantHealth.uploadInstead', 'Upload Photo Instead')}</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleAnalyzeLeaf(true)}
+                      className="flex items-center space-x-1 px-3 py-1.5 text-slate-400 hover:text-slate-200 text-[11px] font-medium transition-colors cursor-pointer underline"
+                    >
+                      <span>Analyze Anyway</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-4 sm:p-5 bg-slate-900 border-t border-slate-800 flex items-center justify-between z-20">
+          {!capturedImage ? (
+            <div className="w-full flex items-center justify-between">
+              <span className="text-xs text-slate-400 hidden sm:inline">
+                {t('plantHealth.daylightHint', 'Natural daylight provides highest classification accuracy')}
+              </span>
+              <button
+                onClick={handleCapture}
+                disabled={cameraStatus !== 'ready'}
+                className="mx-auto sm:mx-0 flex items-center space-x-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-700/30 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <div className={`w-3.5 h-3.5 rounded-full bg-white ${cameraStatus === 'ready' ? 'animate-ping' : ''} mr-1`} />
+                <Camera className="w-4 h-4 text-emerald-100" />
+                <span>{t('plantHealth.capturePhoto', 'Capture Leaf Photo')}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="w-full flex items-center justify-between space-x-3">
+              <button
+                onClick={handleRetake}
+                disabled={isAnalyzing}
+                className="flex items-center space-x-1.5 px-4 py-2.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>{t('plantHealth.retakePhoto', 'Retake Photo')}</span>
+              </button>
+
+              <button
+                onClick={() => handleAnalyzeLeaf(false)}
+                disabled={isAnalyzing}
+                className="flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Analyzing Leaf...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-emerald-200" />
+                    <span>{t('plantHealth.analyzeCaptured', 'Analyze Captured Leaf')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
