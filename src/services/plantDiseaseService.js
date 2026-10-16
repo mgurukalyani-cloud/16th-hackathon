@@ -340,6 +340,9 @@ export const PLANTVILLAGE_LABEL_MAP = {
   'Rice___healthy': 'healthy_leaf'
 };
 
+const BASE_PATH = import.meta.env.BASE_URL || '/';
+const getAssetUrl = (p) => `${BASE_PATH.replace(/\/$/, '')}/${p.replace(/^\//, '')}`;
+
 /**
  * Pre-bundled representative leaf sample images (local assets first for guaranteed 0-latency & CORS safety)
  */
@@ -349,7 +352,7 @@ export const SAMPLE_PLANT_IMAGES = [
     name: 'Tomato Leaf — Early Blight',
     crop: 'Tomato',
     expectedCondition: 'Early Blight',
-    url: '/samples/diseased-leaf.jpg',
+    url: getAssetUrl('samples/diseased-leaf.jpg'),
     fallbackUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=800&q=80',
     description: 'Distinct concentric ring lesions with chlorotic yellowing on lower tomato leaf.',
     sampleData: 'tomato_early_blight'
@@ -359,7 +362,7 @@ export const SAMPLE_PLANT_IMAGES = [
     name: 'Tomato Leaf — Late Blight',
     crop: 'Tomato',
     expectedCondition: 'Late Blight',
-    url: '/samples/diseased-leaf.jpg',
+    url: getAssetUrl('samples/diseased-leaf.jpg'),
     fallbackUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=800&q=80',
     description: 'Irregular water-soaked necrotic patches with collapsed tissue.',
     sampleData: 'tomato_late_blight'
@@ -369,7 +372,7 @@ export const SAMPLE_PLANT_IMAGES = [
     name: 'Potato Leaf — Blight Lesions',
     crop: 'Potato',
     expectedCondition: 'Potato Blight',
-    url: '/samples/potato-blight.jpg',
+    url: getAssetUrl('samples/potato-blight.jpg'),
     fallbackUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=800&q=80',
     description: 'Severe marginal necrosis with pale halos across leaflet blade.',
     sampleData: 'potato_late_blight'
@@ -379,7 +382,7 @@ export const SAMPLE_PLANT_IMAGES = [
     name: 'Healthy Crop Foliage',
     crop: 'Tomato / Field Crop',
     expectedCondition: 'Healthy Foliage',
-    url: '/samples/healthy-leaf.jpg',
+    url: getAssetUrl('samples/healthy-leaf.jpg'),
     fallbackUrl: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?auto=format&fit=crop&w=800&q=80',
     description: 'Vibrant chlorophyll green leaf blade without necrotic spots or lesions.',
     sampleData: 'healthy_leaf'
@@ -389,7 +392,7 @@ export const SAMPLE_PLANT_IMAGES = [
     name: 'Rice Leaf — Blast Lesions',
     crop: 'Rice',
     expectedCondition: 'Rice Blast',
-    url: '/samples/rice-blast.jpg',
+    url: getAssetUrl('samples/rice-blast.jpg'),
     fallbackUrl: 'https://images.unsplash.com/photo-1536657464919-892534f60d6e?auto=format&fit=crop&w=800&q=80',
     description: 'Spindle-shaped elliptical lesions with gray necrotic centers.',
     sampleData: 'rice_blast'
@@ -399,7 +402,7 @@ export const SAMPLE_PLANT_IMAGES = [
     name: 'Apple Leaf — Scab Spotting',
     crop: 'Apple',
     expectedCondition: 'Apple Scab',
-    url: '/samples/apple-scab.jpg',
+    url: getAssetUrl('samples/apple-scab.jpg'),
     fallbackUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
     description: 'Velvety olive-brown fungal spotting on apple foliage.',
     sampleData: 'apple_scab'
