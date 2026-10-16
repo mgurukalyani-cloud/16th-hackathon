@@ -25,7 +25,7 @@ const chrome = spawn(CHROME_PATH, [
   '--no-first-run',
   '--no-default-browser-check',
   '--window-size=1280,800',
-  'http://localhost:5173'
+  'http://localhost:5173/16th-hackathon/'
 ]);
 
 chrome.stderr.on('data', (d) => {
@@ -87,8 +87,8 @@ async function runTest() {
     expression: `
       (async () => {
         try {
-          const { analyzePlantImage, evaluateWeatherDiseaseContext } = await import('/src/services/plantDiseaseService.js');
-          const diseasedRes = await analyzePlantImage('/samples/diseased-leaf.jpg');
+          const { analyzePlantImage, evaluateWeatherDiseaseContext } = await import('/16th-hackathon/src/services/plantDiseaseService.js');
+          const diseasedRes = await analyzePlantImage('/16th-hackathon/samples/diseased-leaf.jpg');
           const weatherCtx = evaluateWeatherDiseaseContext(
             diseasedRes.diseaseInfo,
             { temperature_2m: 25.5, relative_humidity_2m: 85 },
@@ -150,8 +150,8 @@ async function runTest() {
     expression: `
       (async () => {
         try {
-          const { analyzePlantImage, evaluateWeatherDiseaseContext } = await import('/src/services/plantDiseaseService.js');
-          const healthyRes = await analyzePlantImage('/samples/healthy-leaf.jpg');
+          const { analyzePlantImage, evaluateWeatherDiseaseContext } = await import('/16th-hackathon/src/services/plantDiseaseService.js');
+          const healthyRes = await analyzePlantImage('/16th-hackathon/samples/healthy-leaf.jpg');
           const weatherCtx = evaluateWeatherDiseaseContext(
             healthyRes.diseaseInfo,
             { temperature_2m: 23.0, relative_humidity_2m: 60 },
@@ -201,7 +201,7 @@ async function runTest() {
   const blurEval = await send('Runtime.evaluate', {
     expression: `
       (async () => {
-        const { analyzePlantImage } = await import('/src/services/plantDiseaseService.js');
+        const { analyzePlantImage } = await import('/16th-hackathon/src/services/plantDiseaseService.js');
         // Generate uniform blank/blurred image
         const canvas = document.createElement('canvas');
         canvas.width = 100;

@@ -330,10 +330,16 @@ export default function CameraScanner({ onCapture, onClose, onSwitchToUpload }) 
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
+      if (!dataUrl || dataUrl.length < 500) {
+        console.warn('AgriSense: Frame capture produced invalid dataUrl.');
+        return;
+      }
+
       // Stop camera hardware tracks immediately while user reviews photo
       stopActiveStream();
 
       setCapturedImage(dataUrl);
+      setScanError(null);
     } catch (err) {
       console.error('AgriSense: Frame capture error:', err);
     }
@@ -359,7 +365,7 @@ export default function CameraScanner({ onCapture, onClose, onSwitchToUpload }) 
     const stepTimer2 = setTimeout(() => setAnalysisStep(3), 750);
 
     try {
-      const result = await analyzePlantImage(capturedImage, null);
+      const result = await analyzePlantImage(capturedImage, null, { forceAnalysis });
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);
 
@@ -370,6 +376,7 @@ export default function CameraScanner({ onCapture, onClose, onSwitchToUpload }) 
         setIsAnalyzing(false);
         stopActiveStream();
         onCapture(capturedImage, result);
+        onClose();
       }
     } catch (err) {
       clearTimeout(stepTimer1);

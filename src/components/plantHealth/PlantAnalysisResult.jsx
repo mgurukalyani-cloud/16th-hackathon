@@ -292,6 +292,16 @@ export default function PlantAnalysisResult({
                 </span>
               </div>
             )}
+
+            {/* Optical Clarity Notice */}
+            {analysis.clarityWarning && (
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-[11px] flex items-start space-x-2">
+                <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Optical Focus Notice:</strong> {analysis.clarityWarning}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Identified Visual Symptoms Card */}

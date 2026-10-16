@@ -301,7 +301,7 @@ export default function PlantHealthPage({
         /* Results View */
         <PlantAnalysisResult
           analysis={analysisResult}
-          imageSource={selectedImage.source}
+          imageSource={selectedImage?.source || (typeof selectedImage === 'string' ? selectedImage : '')}
           currentWeather={currentWeather}
           dailyWeather={dailyWeather}
           location={location}
