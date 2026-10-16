@@ -17,7 +17,10 @@ import {
   ShieldAlert,
   ChevronDown,
   Gauge,
-  Radio
+  Radio,
+  TrendingUp,
+  Coins,
+  Scale
 } from 'lucide-react';
 import { INDIAN_LANGUAGES, getLanguageByCode } from '../../i18n/languages';
 import { voiceAssistantService } from '../../services/voiceAssistantService';
@@ -262,71 +265,95 @@ export default function VoiceFarmingAssistant({
   const getQuickQuestions = () => {
     if (selectedLang === 'te') {
       return [
+        { icon: Sprout, text: 'ఈ సీజన్‌లో ఏ పంట వేయాలి?' },
+        { icon: Droplets, text: 'తక్కువ నీరు అవసరమయ్యే పంటలు ఏవి?' },
+        { icon: Coins, text: 'ఒక ఎకరానికి ఎంత ఖర్చు అవుతుంది?' },
+        { icon: TrendingUp, text: 'సమీప మార్కెట్లలో తాజా ధరలు ఏమిటి?' },
+        { icon: Scale, text: 'పత్తి, మొక్కజొన్న, పప్పు ధాన్యాలను పోల్చండి.' },
+        { icon: ShieldAlert, text: 'ఏ పంటలో ఆర్థిక నష్టం తక్కువ?' },
         { icon: CloudRain, text: 'రేపు వర్షం పడుతుందా?' },
         { icon: Droplets, text: 'ఏ జోన్‌కు నీరు కావాలి?' },
         { icon: Gauge, text: 'నీటి ట్యాంక్ ఎంత ఉంది?' },
-        { icon: Sprout, text: 'నేల pH ఎంత ఉంది?' },
-        { icon: Radio, text: 'మందు పిచికారీ చేయవచ్చా?' },
         { icon: HelpCircle, text: 'ఆకు వ్యాధి ఫలితం ఏమిటి?' }
       ];
     }
     if (selectedLang === 'hi') {
       return [
+        { icon: Sprout, text: 'इस मौसम में कौन सी फसल बोएं?' },
+        { icon: Droplets, text: 'किन फसलों में कम पानी लगता है?' },
+        { icon: Coins, text: 'एक एकड़ में कितना खर्च आएगा?' },
+        { icon: TrendingUp, text: 'नजदीकी मंडियों में ताजा भाव क्या हैं?' },
+        { icon: Scale, text: 'कपास, मक्का और दालों की तुलना करें।' },
+        { icon: ShieldAlert, text: 'किस विकल्प में वित्तीय जोखिम कम है?' },
         { icon: CloudRain, text: 'क्या कल बारिश होगी?' },
         { icon: Droplets, text: 'किस जोन में पानी चाहिए?' },
         { icon: Gauge, text: 'पानी की टंकी का स्तर क्या है?' },
-        { icon: Sprout, text: 'मेरी मिट्टी का pH क्या है?' },
-        { icon: Radio, text: 'क्या आज कीटनाशक छिड़क सकते हैं?' },
         { icon: HelpCircle, text: 'पत्ती की बीमारी का क्या मतलब है?' }
       ];
     }
     if (selectedLang === 'mr') {
       return [
+        { icon: Sprout, text: 'या हंगामात कोणते पीक पेरावे?' },
+        { icon: Droplets, text: 'कमी पाण्यात येणारी पिके कोणती?' },
+        { icon: Coins, text: 'एका एकरासाठी किती खर्च येईल?' },
+        { icon: TrendingUp, text: 'जवळच्या बाजारपेठेत चालू भाव काय आहेत?' },
+        { icon: Scale, text: 'कापूस, मका आणि कडधान्यांची तुलना करा.' },
+        { icon: ShieldAlert, text: 'कोणत्या पिकामध्ये आर्थिक धोका कमी आहे?' },
         { icon: CloudRain, text: 'उद्या पाऊस पडेल का?' },
-        { icon: Droplets, text: 'कोणत्या झोनला पाणी हवे आहे?' },
-        { icon: Gauge, text: 'पाण्याची टाकी किती भरली आहे?' },
-        { icon: Sprout, text: 'मातीचा pH किती आहे?' },
-        { icon: Radio, text: 'आज फवारणी करता येईल का?' },
-        { icon: HelpCircle, text: 'पानावरील रोगाचा अर्थ काय?' }
+        { icon: Droplets, text: 'कोणत्या झोनला पाणी हवे आहे?' }
       ];
     }
     if (selectedLang === 'ta') {
       return [
+        { icon: Sprout, text: 'இந்த பருவத்தில் என்ன பயிர் நடலாம்?' },
+        { icon: Droplets, text: 'குறைந்த நீர் தேவைப்படும் பயிர்கள் எவை?' },
+        { icon: Coins, text: 'ஒரு ஏக்கருக்கு எவ்வளவு செலவு ஆகும்?' },
+        { icon: TrendingUp, text: 'அருகிலுள்ள சந்தைகளில் புதிய விலை என்ன?' },
+        { icon: Scale, text: 'பருத்தி, சோளம் மற்றும் பருப்பு வகைகளை ஒப்பிடுக.' },
+        { icon: ShieldAlert, text: 'எந்த பயிரில் நிதி ஆபத்து குறைவு?' },
         { icon: CloudRain, text: 'நாளை மழை பெய்யுமா?' },
-        { icon: Droplets, text: 'எந்த பகுதிக்கு தண்ணீர் தேவை?' },
-        { icon: Gauge, text: 'தொட்டி நீர் அளவு என்ன?' },
-        { icon: Sprout, text: 'மண்ணின் pH அளவு என்ன?' },
-        { icon: HelpCircle, text: 'இலை நோய் முடிவு என்ன?' }
+        { icon: Droplets, text: 'எந்த பகுதிக்கு தண்ணீர் தேவை?' }
       ];
     }
     if (selectedLang === 'bn') {
       return [
+        { icon: Sprout, text: 'এই মৌসুমে কোন ফসল রোপণ করব?' },
+        { icon: Droplets, text: 'কোন ফসলে কম জল প্রয়োজন?' },
+        { icon: Coins, text: 'এক একরে কত খরচ হতে পারে?' },
+        { icon: TrendingUp, text: 'কাছের বাজারে বর্তমান দর কত?' },
         { icon: CloudRain, text: 'কাল কি বৃষ্টি হবে?' },
-        { icon: Droplets, text: 'কোন জোনে জল লাগবে?' },
-        { icon: Gauge, text: 'পানির ট্যাঙ্কে কত জল আছে?' },
-        { icon: Sprout, text: 'মাটির pH কত?' },
-        { icon: HelpCircle, text: 'পাতার রোগের ফলাফল কি?' }
+        { icon: Droplets, text: 'কোন জোনে জল লাগবে?' }
       ];
     }
     if (selectedLang === 'kn') {
       return [
+        { icon: Sprout, text: 'ಈ ಋತುವಿನಲ್ಲಿ ಯಾವ ಬೆಳೆ ಬಿತ್ತನೆ ಮಾಡಬೇಕು?' },
+        { icon: Droplets, text: 'ಕಡಿಮೆ ನೀರು ಬೇಕಾಗುವ ಬೆಳೆಗಳು ಯಾವುವು?' },
+        { icon: Coins, text: 'ಒಂದು ಎಕರೆಗೆ ಎಷ್ಟು ಖರ್ಚಾಗುತ್ತದೆ?' },
+        { icon: TrendingUp, text: 'ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆಗಳಲ್ಲಿ ಇತ್ತೀಚಿನ ಬೆಲೆಗಳು ಯಾವುವು?' },
         { icon: CloudRain, text: 'ನಾಳೆ ಮಳೆಯಾಗುವುದೇ?' },
-        { icon: Droplets, text: 'ಯಾವ ವಲಯಕ್ಕೆ ನೀರು ಬೇಕು?' },
-        { icon: Gauge, text: 'ಟ್ಯಾಂಕ್‌ನಲ್ಲಿ ಎಷ್ಟು ನೀರಿದೆ?' },
-        { icon: Sprout, text: 'ಮಣ್ಣಿನ pH ಎಷ್ಟಿದೆ?' }
+        { icon: Droplets, text: 'ಯಾವ ವಲಯಕ್ಕೆ ನೀರು ಬೇಕು?' }
       ];
     }
     if (selectedLang === 'gu') {
       return [
+        { icon: Sprout, text: 'આ સિઝનમાં કયો પાક વાવવો જોઈએ?' },
+        { icon: Droplets, text: 'કયા પાકમાં ઓછું પાણી જોઈએ?' },
+        { icon: Coins, text: 'એક એકરમાં કેટલો ખર્ચ થશે?' },
+        { icon: TrendingUp, text: 'નજીકના માર્કેટ યાર્ડમાં તાજા ભાવ શું છે?' },
         { icon: CloudRain, text: 'કાલે વરસાદ પડશે?' },
-        { icon: Droplets, text: 'કયા ઝોનમાં પાણી જોઈએ?' },
-        { icon: Gauge, text: 'ટાંકીમાં કેટલું પાણી છે?' },
-        { icon: Sprout, text: 'જમીનનો pH કેટલો છે?' }
+        { icon: Droplets, text: 'કયા ઝોનમાં પાણી જોઈએ?' }
       ];
     }
 
     // Default English
     return [
+      { icon: Sprout, text: 'Which crop should I sow this season?' },
+      { icon: Droplets, text: 'Which crops require less water?' },
+      { icon: Coins, text: 'How much money might I need for one acre?' },
+      { icon: TrendingUp, text: 'What are the latest prices in nearby markets?' },
+      { icon: Scale, text: 'Compare cotton, maize and pulses for my farm.' },
+      { icon: ShieldAlert, text: 'Which option has lower financial risk?' },
       { icon: CloudRain, text: 'Will it rain tomorrow?' },
       { icon: Droplets, text: 'Which irrigation zone needs water?' },
       { icon: Gauge, text: 'What is the water tank level?' },

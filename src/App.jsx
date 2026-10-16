@@ -9,6 +9,7 @@ import HourlyForecastStrip from './components/HourlyForecastStrip';
 import FutureForecastView from './components/FutureForecastView';
 import HistoricalWeatherView from './components/HistoricalWeatherView';
 import PlantHealthPage from './components/plantHealth/PlantHealthPage';
+import CropPlanningPage from './components/cropPlanning/CropPlanningPage';
 import PlatformModulesDrawer from './components/PlatformModulesDrawer';
 import LocationSearchModal from './components/LocationSearchModal';
 import SettingsModal from './components/SettingsModal';
@@ -20,13 +21,13 @@ import Footer from './components/Footer';
 
 import { fetchWeatherData, reverseGeocodeCoords, DEFAULT_REAL_LOCATION } from './services/weatherApi';
 import { generateFarmAdvisories } from './services/agroAdvisor';
-import { Loader2, AlertCircle, ScanLine, Leaf, ArrowRight } from 'lucide-react';
+import { Loader2, AlertCircle, ScanLine, Leaf, ArrowRight, Sprout } from 'lucide-react';
 
 const AUTO_REFRESH_INTERVAL_SECONDS = 900; // 15 minutes
 
 export default function App() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'live' | 'past' | 'forecast' | 'plant_health' | 'farm_insights' | 'voice_assistant'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'live' | 'past' | 'forecast' | 'plant_health' | 'crop_planning' | 'farm_insights' | 'voice_assistant'
   const [location, setLocation] = useState(DEFAULT_REAL_LOCATION);
   const [weatherData, setWeatherData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -265,6 +266,37 @@ export default function App() {
                   </button>
                 </div>
 
+                {/* Seasonal Crop Planning & Real Mandi Prices Spotlight Banner */}
+                <div className="bg-gradient-to-r from-teal-950 via-emerald-900 to-green-950 rounded-3xl p-5 sm:p-6 text-white shadow-md border border-emerald-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-start space-x-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-white/10 text-emerald-200 flex items-center justify-center shrink-0">
+                      <Sprout className="w-6 h-6 text-emerald-300" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-600/60 border border-emerald-400/40 text-emerald-100">
+                          {t('cropPlanning.spotlightTag', 'Market Intelligence')}
+                        </span>
+                        <h3 className="text-base sm:text-lg font-bold">
+                          {t('cropPlanning.spotlightTitle', 'Seasonal Crop Planning & Real Mandi Prices')}
+                        </h3>
+                      </div>
+                      <p className="text-xs text-emerald-200/90 mt-1 max-w-2xl leading-relaxed">
+                        {t('cropPlanning.spotlightDesc', 'Plan high-yielding crops for your soil and season, check live AGMARKNET mandi prices, and calculate cultivation expenditure, yield scenarios, and net profit.')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setActiveTab('crop_planning')}
+                    className="flex items-center space-x-2 px-5 py-3 rounded-2xl bg-white text-emerald-950 font-bold text-xs sm:text-sm hover:bg-emerald-50 shadow-md transition-all shrink-0 cursor-pointer"
+                  >
+                    <Sprout className="w-4 h-4 text-emerald-700" />
+                    <span>{t('cropPlanning.openPlanner', 'Explore Crop Planning')}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+
                 {/* 8-Card Atmospheric & Agronomic Metrics Grid */}
                 <WeatherMetricsGrid
                   weatherData={weatherData}
@@ -338,7 +370,19 @@ export default function App() {
               </div>
             )}
 
-            {/* TAB CONTENT: 6. FARM INSIGHTS (WEATHER ADVISOR) */}
+            {/* TAB CONTENT: 6. SEASONAL CROP PLANNING & MARKET INTELLIGENCE */}
+            {activeTab === 'crop_planning' && (
+              <div className="animate-in fade-in duration-300">
+                <CropPlanningPage
+                  currentWeather={weatherData.current}
+                  dailyWeather={weatherData.daily}
+                  location={location}
+                  tempUnit={tempUnit}
+                />
+              </div>
+            )}
+
+            {/* TAB CONTENT: 7. FARM INSIGHTS (WEATHER ADVISOR) */}
             {activeTab === 'farm_insights' && (
               <div className="animate-in fade-in duration-300 space-y-6">
                 <FarmWeatherAdvisor

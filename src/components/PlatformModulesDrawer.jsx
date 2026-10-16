@@ -45,11 +45,11 @@ export default function PlatformModulesDrawer({ isOpen, onClose }) {
     {
       id: 'crop',
       number: 'Module 03',
-      title: 'AI Crop Recommendation Engine',
-      status: 'PIPELINE READY',
-      statusColor: 'bg-purple-100 text-purple-800 border-purple-300',
+      title: 'Seasonal Crop Planning & Mandi Intelligence',
+      status: 'ACTIVE & INTEGRATED',
+      statusColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       icon: Sprout,
-      desc: 'Machine learning model synthesizing historical rainfall patterns, soil composition, and seasonal degree days.'
+      desc: 'University crop calendar recommendations, live AGMARKNET/e-NAM mandi wholesale prices, CACP/SAU cultivation expenditure sheets, and 3x3 profit sensitivity matrices.'
     },
     {
       id: 'irrigation',
@@ -269,15 +269,26 @@ export default function PlatformModulesDrawer({ isOpen, onClose }) {
 
             {activeModuleTab === 'crop' && (
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-slate-900">
-                  Module 3: AI Crop Recommendation Engine
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Module 3: Seasonal Crop Planning & Mandi Intelligence
+                  </h3>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    Fully Deployed
+                  </span>
+                </div>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Utilizes random forest and gradient boosted algorithms trained on agricultural ICAR and FAO soil datasets. Recommends highest-yield seasonal crops based on rainfall trends, NPK levels, and temperature history.
+                  Synthesizes farmer soil type, pH, water availability, and agro-climatic zones across 16 major Indian crops with verified varieties from PAU, IARI, PJTSAU, and IIHR.
                 </p>
-                <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-xs text-purple-900 space-y-1">
-                  <span className="font-bold">Model Inputs:</span>
-                  <p>Weather History (Rainfall, GDD) + ESP32 Soil Sensor Data (N, P, K, pH) + Geographical Latitude/Elevation.</p>
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 space-y-2">
+                  <span className="font-bold block">Live Capabilities:</span>
+                  <ul className="space-y-1 list-disc list-inside">
+                    <li>Multi-factor agronomic recommendation matching soil pH, climate, and water depth</li>
+                    <li>Authentic AGMARKNET / e-NAM wholesale mandi prices with 8-week trend charts</li>
+                    <li>Itemized 8-head CACP/SAU cultivation expenditure sheets per acre & total holding</li>
+                    <li>3×3 sensitivity scenario matrix (Yields × Market Prices) computing net profit & ROI</li>
+                    <li>CCEA Minimum Support Price (MSP) benchmarks and harvest arrival price forecasts</li>
+                  </ul>
                 </div>
               </div>
             )}

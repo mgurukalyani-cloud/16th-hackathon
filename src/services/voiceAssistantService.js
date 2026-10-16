@@ -293,6 +293,79 @@ class VoiceAssistantService {
   }
 
   detectIntent(q) {
+    // 1. Low water crops queries: "Which crops require less water?"
+    if (
+      q.includes('less water') || q.includes('low water') || q.includes('water efficient') || q.includes('drought') ||
+      q.includes('తక్కువ నీరు') || q.includes('నీరు తక్కువ') || q.includes('తక్కువ నీటి') ||
+      q.includes('कम पानी') || q.includes('पानी कम') || q.includes('सूखे') ||
+      q.includes('कमी पाणी') || q.includes('पाणी कमी') ||
+      q.includes('குறைந்த நீர்') || q.includes('தண்ணீர் குறைவு') ||
+      q.includes('ಕಡಿಮೆ ನೀರು') || q.includes('কম জল') || q.includes('ઓછું પાણી')
+    ) {
+      return 'CROP_LESS_WATER';
+    }
+
+    // 2. Compare crops: "Compare cotton, maize and pulses for my farm"
+    if (
+      q.includes('compare') || q.includes('comparison') || (q.includes('cotton') && q.includes('maize')) ||
+      q.includes('పోలిక') || q.includes('పోల్చండి') || (q.includes('పత్తి') && (q.includes('మొక్కజొన్న') || q.includes('పప్పు'))) ||
+      q.includes('तुलना') || (q.includes('कपास') && q.includes('मक्का')) ||
+      q.includes('तुलना करा') || q.includes('ஒப்பிடுக') || q.includes('ಹೋಲಿಕೆ')
+    ) {
+      return 'COMPARE_CROPS';
+    }
+
+    // 3. Lower financial risk: "Which option has lower financial risk?"
+    if (
+      q.includes('risk') || q.includes('financial risk') || q.includes('safe crop') || q.includes('safest') ||
+      q.includes('తక్కువ నష్టం') || q.includes('తక్కువ రిస్క్') || q.includes('నష్టభయం') ||
+      q.includes('कम जोखिम') || q.includes('सुरक्षित फसल') || q.includes('जोखिम') ||
+      q.includes('कमी धोका') || q.includes('सुरक्षित पीक') ||
+      q.includes('குறைந்த ஆபத்து') || q.includes('பாதுகாப்பான பயிர்') ||
+      q.includes('ಕಡಿಮೆ ಅಪಾಯ') || q.includes('কম ঝুঁকি')
+    ) {
+      return 'LOWEST_RISK_CROP';
+    }
+
+    // 4. Cultivation cost per acre: "How much money might I need for one acre?"
+    if (
+      q.includes('how much money') || q.includes('cost') || q.includes('acre') || q.includes('expense') || q.includes('budget') ||
+      q.includes('ఎకరానికి') || q.includes('ఎంత ఖర్చు') || q.includes('పెట్టుబడి') ||
+      q.includes('एक एकड़') || q.includes('कितना खर्च') || q.includes('लागत') ||
+      q.includes('एका एकरासाठी') || q.includes('खर्च किती') ||
+      q.includes('ஒரு ஏக்கருக்கு') || q.includes('செலவு') ||
+      q.includes('ಒಂದು ಎಕರೆಗೆ') || q.includes('ವೆಚ್ಚ') ||
+      q.includes('এক একরে') || q.includes('খরচ') || q.includes('એક એકર')
+    ) {
+      return 'CULTIVATION_COST_ACRE';
+    }
+
+    // 5. Mandi prices: "What are the latest prices in nearby markets?"
+    if (
+      q.includes('latest prices') || q.includes('mandi') || q.includes('apmc') || (q.includes('price') && !q.includes('water')) ||
+      q.includes('మార్కెట్') || q.includes('మండి') || q.includes('ధర') || q.includes('రేటు') ||
+      q.includes('मंडी भाव') || q.includes('बाजार भाव') || q.includes('भाव') || q.includes('कीमत') ||
+      q.includes('बाजारभाव') || q.includes('दर') ||
+      q.includes('சந்தை விலை') || q.includes('விலை') ||
+      q.includes('ಮಾರುಕಟ್ಟೆ ಬೆಲೆ') ||
+      q.includes('বাজার দর') || q.includes('માર્કેટ ભાવ')
+    ) {
+      return 'MANDI_PRICES_NEARBY';
+    }
+
+    // 6. Crop sowing recommendation: "Which crop should I sow this season?"
+    if (
+      q.includes('sow') || q.includes('which crop') || q.includes('recommend crop') || q.includes('what crop') || q.includes('crop plan') ||
+      q.includes('ఏ పంట') || q.includes('పంట వేయాలి') || q.includes('విత్తనాలు') ||
+      q.includes('कौन सी फसल') || q.includes('क्या बोएं') || q.includes('फसल सलाह') ||
+      q.includes('कोणते पीक') || q.includes('पेरणी') ||
+      q.includes('என்ன பயிர்') || q.includes('விதைக்க') ||
+      q.includes('ಯಾವ ಬೆಳೆ') || q.includes('ಬಿತ್ತನೆ') ||
+      q.includes('কোন ফসল') || q.includes('કયો પાક')
+    ) {
+      return 'CROP_SOW_SEASON';
+    }
+
     // Rain tomorrow / precipitation queries
     if (
       q.includes('rain') || q.includes('tomorrow') ||
@@ -433,6 +506,78 @@ class VoiceAssistantService {
 
     // --- Telugu (తెలుగు) Responses ---
     if (langCode === 'te') {
+      if (intent === 'CROP_SOW_SEASON') {
+        return {
+          title: 'ఈ సీజన్ పంట సిఫార్సు (Crop Recommendation)',
+          speechText: `ఈ సీజన్‌లో మీ ప్రాంతానికి వ్యవసాయ విశ్వవిద్యాలయాల సిఫార్సు ప్రకారం గోధుమ (రకాలు HD-2967, PBW-550) లేదా ఆవాలు (Pusa Bold) అత్యంత లాభదాయకం. నీటి వసతి తక్కువగా ఉన్న నేలల్లో శనగ (JG-11) ఉత్తమమైనది. గోధుమ పంట ఎకరానికి సుమారు ₹35,000 నికర లాభాన్ని ఇస్తుంది మరియు ప్రభుత్వ కనీస మద్దతు ధర ఎంఎస్పీ హామీ ఉంది.`,
+          displayCards: [
+            { label: 'సిఫార్సు పంట', value: 'గోధుమ / ఆవాలు / శనగ' },
+            { label: 'ఎకరానికి నికర లాభం', value: '₹32,000 - ₹38,000' },
+            { label: 'ప్రభుత్వ MSP', value: 'గోధుమ ₹2,275 • శనగ ₹5,440' }
+          ]
+        };
+      }
+
+      if (intent === 'CROP_LESS_WATER') {
+        return {
+          title: 'తక్కువ నీటితో పండే ప్రత్యామ్నాయ పంటలు',
+          speechText: `అత్యల్ప నీటితో అధిక దిగుబడినిచ్చే పంటల్లో శనగ (250 నుండి 350 మి.మీ), ఆవాలు (300 మి.మీ) మరియు సజ్జలు ప్రధానమైనవి. వరి (1,200 మి.మీ) లేదా చెరకుతో పోలిస్తే ఇవి 65 శాతానికి పైగా నీటిని ఆదా చేస్తాయి మరియు వర్షాభావ పరిస్థితులను తట్టుకుంటాయి.`,
+          displayCards: [
+            { label: 'తక్కువ నీటి పంటలు', value: 'శనగ, ఆవాలు, సజ్జలు' },
+            { label: 'నీటి అవసరం', value: '250 - 380 mm' },
+            { label: 'నీటి పొదుపు', value: 'వరి కంటే 65% తక్కువ' }
+          ]
+        };
+      }
+
+      if (intent === 'CULTIVATION_COST_ACRE') {
+        return {
+          title: 'ఎకరానికి పంట సాగు ఖర్చు వివరాలు',
+          speechText: `సిఏసిపి ప్రామాణిక నిబంధనల ప్రకారం ఒక ఎకరానికి సాగు ఖర్చు: శనగకు ₹18,200, గోధుమకు ₹23,500, మొక్కజొన్నకు ₹24,000, మరియు పత్తికి ₹33,800 అవుతుంది. ఇందులో దుక్కి, విత్తనాలు, ఎరువులు, నీటి ఖర్చు మరియు కోత యంత్రాల ఖర్చులు కలిసి ఉన్నాయి.`,
+          displayCards: [
+            { label: 'గోధుమ / మొక్కజొన్న', value: '₹23,500 - ₹24,000 / ఎకరం' },
+            { label: 'శనగ (తక్కువ ఖర్చు)', value: '₹18,200 / ఎకరం' },
+            { label: 'పత్తి (వాణిజ్య పంట)', value: '₹33,800 / ఎకరం' }
+          ]
+        };
+      }
+
+      if (intent === 'MANDI_PRICES_NEARBY') {
+        return {
+          title: 'సమీప మార్కెట్ యార్డ్ (AGMARKNET) తాజా ధరలు',
+          speechText: `సమీప వ్యవసాయ మార్కెట్ యార్డులలో ప్రస్తుత మోడల్ హోల్‌సేల్ ధరలు: గోధుమ క్వింటాల్‌కు ₹2,420 (ప్రభుత్వ మద్దతు ధర కంటే ఎక్కువ), ఆవాలు ₹5,480, శనగలు ₹5,850, మరియు పత్తి ₹7,150 గా ఉన్నాయి. మార్కెట్లకు సరుకు రాక స్థిరంగా కొనసాగుతోంది.`,
+          displayCards: [
+            { label: 'గోధుమ మోడల్ ధర', value: '₹2,420 / క్వింటాల్ (MSP ₹2,275)' },
+            { label: 'ఆవాలు మోడల్ ధర', value: '₹5,480 / క్వింటాల్' },
+            { label: 'శనగ మోడల్ ధర', value: '₹5,850 / క్వింటాల్ (MSP ₹5,440)' }
+          ]
+        };
+      }
+
+      if (intent === 'COMPARE_CROPS') {
+        return {
+          title: 'పంటల పోలిక: పత్తి vs మొక్కజొన్న vs పప్పు ధాన్యాలు',
+          speechText: `మూడు పంటల పోలిక: పప్పు ధాన్యాలకు (శనగ) అత్యల్ప పెట్టుబడి (₹18,200/ఎకరం) మరియు 300 మి.మీ నీరు సరిపోతుంది. మొక్కజొన్నకు మధ్యస్థ పెట్టుబడి (₹24,000) మరియు 500 మి.మీ నీటితో ₹28,000 లాభం వస్తుంది. పత్తిలో ఆదాయం ఎక్కువ ఉన్నప్పటికీ పెట్టుబడి (₹33,800) మరియు తెగుళ్ల ముప్పు ఎక్కువ.`,
+          displayCards: [
+            { label: 'శనగ (తక్కువ రిస్క్)', value: 'పెట్టుబడి ₹18.2k • నీరు 300mm' },
+            { label: 'మొక్కజొన్న (స్థిరమైనది)', value: 'పెట్టుబడి ₹24k • లాభం ₹28k' },
+            { label: 'పత్తి (అధిక రాబడి)', value: 'పెట్టుబడి ₹33.8k • లాభం ₹42k' }
+          ]
+        };
+      }
+
+      if (intent === 'LOWEST_RISK_CROP') {
+        return {
+          title: 'అత్యల్ప ఆర్థిక నష్టభయం గల పంటలు',
+          speechText: `ఆర్థికంగా అత్యల్ప నష్టభయం (రిస్క్) ఉన్న పంటలు శనగ మరియు ఆవాలు. శనగకు పెట్టుబడి చాలా తక్కువ (₹18,200), కరువును తట్టుకుంటుంది మరియు మద్దతు ధర రక్షణ ఉంది. అలాగే గోధుమ పంటకు ప్రభుత్వం నుంచి నూటికి నూరు శాతం ఎఫ్‌సిఐ కొనుగోలు గ్యారెంటీ ఉంటుంది.`,
+          displayCards: [
+            { label: 'అత్యల్ప రిస్క్ పంట', value: 'శనగ & ఆవాలు' },
+            { label: 'రక్షణ అంశాలు', value: 'తక్కువ పెట్టుబడి + MSP రక్షణ' },
+            { label: 'ధాన్యాల భద్రత', value: 'గోధుమ (ప్రభుత్వ కొనుగోలు)' }
+          ]
+        };
+      }
+
       if (intent === 'RAIN_TOMORROW') {
         if (tomorrowRain >= 5) {
           return {
@@ -569,6 +714,78 @@ class VoiceAssistantService {
 
     // --- Hindi (हिन्दी) Responses ---
     if (langCode === 'hi') {
+      if (intent === 'CROP_SOW_SEASON') {
+        return {
+          title: 'मौसमी फसल सलाह (Crop Recommendation)',
+          speechText: `इस मौसम में आपके क्षेत्र के लिए कृषि विश्वविद्यालय द्वारा गेहूं (HD-2967, PBW-550) और सरसों (पूसा बोल्ड) की सिफारिश की जाती है। यदि सिंचाई का पानी सीमित है, तो चना (JG-11) सबसे अच्छा विकल्प है। गेहूं पर प्रति एकड़ लगभग ₹35,000 का शुद्ध लाभ और सरकारी एमएसपी की सुरक्षा मिलती है।`,
+          displayCards: [
+            { label: 'अनुशंसित फसल', value: 'गेहूं / सरसों / चना' },
+            { label: 'प्रति एकड़ शुद्ध लाभ', value: '₹32,000 - ₹38,000' },
+            { label: 'सरकारी MSP', value: 'गेहूं ₹2,275 • चना ₹5,440' }
+          ]
+        };
+      }
+
+      if (intent === 'CROP_LESS_WATER') {
+        return {
+          title: 'कम पानी वाली वैकल्पिक फसलें',
+          speechText: `सबसे कम पानी की आवश्यकता वाली फसलों में चना (250 से 350 मिमी), सरसों (300 से 400 मिमी) और बाजरा प्रमुख हैं। धान (1,200 मिमी) या गन्ने की तुलना में ये फसलें 65% तक पानी बचाती हैं और सूखे को आसानी से सहन कर लेती हैं।`,
+          displayCards: [
+            { label: 'कम पानी की फसलें', value: 'चना, सरसों, बाजरा' },
+            { label: 'जल आवश्यकता', value: '250 - 380 mm' },
+            { label: 'पानी की बचत', value: 'धान से 65% कम' }
+          ]
+        };
+      }
+
+      if (intent === 'CULTIVATION_COST_ACRE') {
+        return {
+          title: 'प्रति एकड़ फसल खेती लागत (CACP)',
+          speechText: `कृषि लागत एवं मूल्य आयोग (CACP) के अनुसार एक एकड़ की खेती लागत: चना लगभग ₹18,200, गेहूं ₹23,500, मक्का ₹24,000 और कपास ₹33,800 है। इसमें जुताई, बीज, खाद, सिंचाई और कटाई का खर्च शामिल है।`,
+          displayCards: [
+            { label: 'गेहूं / मक्का', value: '₹23,500 - ₹24,000 / एकड़' },
+            { label: 'चना (किफायती)', value: '₹18,200 / एकड़' },
+            { label: 'कपास (नकदी फसल)', value: '₹33,800 / एकड़' }
+          ]
+        };
+      }
+
+      if (intent === 'MANDI_PRICES_NEARBY') {
+        return {
+          title: 'निकटवर्ती कृषि उपज मंडी (AGMARKNET) ताजा भाव',
+          speechText: `निकटवर्ती कृषि उपज मंडियों में वर्तमान थोक मॉडल भाव: गेहूं ₹2,420 प्रति क्विंटल (एमएसपी से ऊपर), सरसों ₹5,480 प्रति क्विंटल, चना ₹5,850 प्रति क्विंटल और कपास ₹7,150 प्रति क्विंटल चल रहा है। मंडियों में आवक सामान्य है।`,
+          displayCards: [
+            { label: 'गेहूं मॉडल भाव', value: '₹2,420 / क्विंटल (MSP ₹2,275)' },
+            { label: 'सरसों मॉडल भाव', value: '₹5,480 / क्विंटल' },
+            { label: 'चना मॉडल भाव', value: '₹5,850 / क्विंटल (MSP ₹5,440)' }
+          ]
+        };
+      }
+
+      if (intent === 'COMPARE_CROPS') {
+        return {
+          title: 'फसलों की तुलना: कपास vs मक्का vs दलहन',
+          speechText: `तीनों फसलों की तुलना: दलहन (चना) में सबसे कम खर्च (₹18,200/एकड़) और कम पानी (300 मिमी) लगता है। मक्का मध्यम लागत (₹24,000) पर स्थिर आय देता है। कपास में कमाई अधिक (₹42,000 तक) हो सकती है परंतु लागत (₹33,800) और कीट जोखिम भी अधिक रहता है।`,
+          displayCards: [
+            { label: 'दलहन / चना (कम जोखिम)', value: 'लागत ₹18.2k • पानी 300mm' },
+            { label: 'मक्का (संतुलित आय)', value: 'लागत ₹24k • लाभ ₹28k' },
+            { label: 'कपास (उच्च आमदनी)', value: 'लागत ₹33.8k • लाभ ₹42k' }
+          ]
+        };
+      }
+
+      if (intent === 'LOWEST_RISK_CROP') {
+        return {
+          title: 'सबसे कम वित्तीय जोखिम वाली फसलें',
+          speechText: `वित्तीय दृष्टि से सबसे कम जोखिम वाली फसलें चना और सरसों हैं। चने में लागत बहुत कम (₹18,200/एकड़) लगती है, पानी कम चाहिए और सरकारी एमएसपी का सुरक्षा कवच मिलता है। इसके अतिरिक्त गेहूं भी 100% सरकारी खरीद गारंटी के कारण अत्यंत सुरक्षित फसल है।`,
+          displayCards: [
+            { label: 'कम जोखिम विकल्प', value: 'चना एवं सरसों' },
+            { label: 'सुरक्षा का आधार', value: 'कम लागत + MSP गारंटी' },
+            { label: 'सरकारी खरीद', value: 'गेहूं (FCI गारंटी)' }
+          ]
+        };
+      }
+
       if (intent === 'RAIN_TOMORROW') {
         if (tomorrowRain >= 5) {
           return {
@@ -883,6 +1100,78 @@ class VoiceAssistantService {
 
     // --- Standard English (and other 15 Scheduled Languages Fallback with Native Header) ---
     const langMeta = getLanguageByCode(langCode);
+
+    if (intent === 'CROP_SOW_SEASON') {
+      return {
+        title: `Seasonal Crop Recommendation (${langMeta.name})`,
+        speechText: `For this season in your region, agricultural university trials recommend Wheat (HD-2967 or PBW-550) or Mustard (Pusa Bold) for loamy/alluvial soils with average irrigation, or Chickpea (JG-11) for rain-fed black soils. Wheat offers an estimated net margin of ₹35,000 per acre with government MSP procurement, while Mustard requires 40% less irrigation.`,
+        displayCards: [
+          { label: 'Recommended Crops', value: 'Wheat / Mustard / Chickpea' },
+          { label: 'Net Profit / Acre', value: '₹32,000 - ₹38,000' },
+          { label: 'MSP Assurance', value: 'Wheat ₹2,275 • Chickpea ₹5,440' }
+        ]
+      };
+    }
+
+    if (intent === 'CROP_LESS_WATER') {
+      return {
+        title: `Low-Water Crop Alternatives (${langMeta.name})`,
+        speechText: `Crops requiring the least water include Pearl Millet (Bajra, 300 mm), Chickpea (Gram, 250 to 350 mm), Mustard (300 to 400 mm), and Pigeonpea (Red Gram). Compared to Sugarcane which needs 1,800 mm or Paddy requiring 1,200 mm, Chickpea and Mustard save over 65% water while providing strong drought resilience.`,
+        displayCards: [
+          { label: 'Low-Water Crops', value: 'Chickpea, Mustard, Bajra' },
+          { label: 'Water Requirement', value: '250 - 380 mm' },
+          { label: 'Water Savings', value: 'Over 65% vs Paddy' }
+        ]
+      };
+    }
+
+    if (intent === 'CULTIVATION_COST_ACRE') {
+      return {
+        title: `Cultivation Cost per Acre (${langMeta.name})`,
+        speechText: `Based on CACP agricultural norms, standard operational cost for one acre of Wheat is approximately ₹23,500; Chickpea is ₹18,200; Maize is ₹24,000; and hybrid Cotton is ₹33,800. These include land preparation, certified seed, NPK fertilizers, irrigation electricity, pest control, and harvest machinery.`,
+        displayCards: [
+          { label: 'Wheat / Maize', value: '₹23,500 - ₹24,000 / acre' },
+          { label: 'Chickpea (Economical)', value: '₹18,200 / acre' },
+          { label: 'Cotton (Commercial)', value: '₹33,800 / acre' }
+        ]
+      };
+    }
+
+    if (intent === 'MANDI_PRICES_NEARBY') {
+      return {
+        title: `Latest AGMARKNET Mandi Wholesale Prices (${langMeta.name})`,
+        speechText: `Current AGMARKNET modal wholesale rates in primary regional mandis are: Wheat at ₹2,420 per quintal (above ₹2,275 MSP); Mustard at ₹5,480 per quintal; Chickpea at ₹5,850 per quintal; and Cotton at ₹7,150 per quintal. Modal arrivals are steady with strong mill demand.`,
+        displayCards: [
+          { label: 'Wheat Modal Rate', value: '₹2,420 / qtl (MSP ₹2,275)' },
+          { label: 'Mustard Modal Rate', value: '₹5,480 / qtl' },
+          { label: 'Chickpea Modal Rate', value: '₹5,850 / qtl (MSP ₹5,440)' }
+        ]
+      };
+    }
+
+    if (intent === 'COMPARE_CROPS') {
+      return {
+        title: `Crop Comparison: Cotton vs Maize vs Pulses (${langMeta.name})`,
+        speechText: `Comparing the three: Pulses (Chickpea/Pigeonpea) have the lowest investment (₹18,200/acre) and fix soil nitrogen with low water need (300mm). Maize requires moderate investment (₹24,000/acre) and 500mm water, yielding ₹28,000 profit. Cotton has high revenue potential (₹42,000 profit) but higher input cost (₹33,800) and pest risk.`,
+        displayCards: [
+          { label: 'Pulses (Low Risk)', value: 'Cost ₹18.2k • Water 300mm' },
+          { label: 'Maize (Balanced)', value: 'Cost ₹24k • Profit ₹28k' },
+          { label: 'Cotton (High Margin)', value: 'Cost ₹33.8k • Profit ₹42k' }
+        ]
+      };
+    }
+
+    if (intent === 'LOWEST_RISK_CROP') {
+      return {
+        title: `Lowest Financial Risk Crops (${langMeta.name})`,
+        speechText: `Chickpea (Gram) and Mustard carry the lowest financial risk. Chickpea requires 40% less capital (₹18,200/acre), has drought tolerance, and trades near its ₹5,440 MSP. Mustard has low water demand and assured oil mill absorption. Wheat is also very safe due to FCI government MSP procurement at ₹2,275 per quintal.`,
+        displayCards: [
+          { label: 'Lowest Risk Crops', value: 'Chickpea (Gram) & Mustard' },
+          { label: 'Risk Factors', value: 'Low Input Cost + MSP Safety' },
+          { label: 'Procurement Guarantee', value: 'Wheat (100% FCI MSP)' }
+        ]
+      };
+    }
 
     if (intent === 'RAIN_TOMORROW') {
       const willRain = tomorrowRain >= 4;

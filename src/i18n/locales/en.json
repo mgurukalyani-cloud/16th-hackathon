@@ -9,6 +9,7 @@
     "pastWeather": "Past Weather",
     "weatherForecast": "Weather Forecast",
     "plantHealth": "Plant Health",
+    "cropPlanning": "Crop Planning & Mandi Prices",
     "leafDisease": "Leaf Disease Detection",
     "farmInsights": "Farm Insights",
     "voiceAssistant": "Voice Assistant",
@@ -298,6 +299,23 @@
     "attributionTitle": "Meteorological Data Attribution",
     "attributionDesc": "AgriSense integrates Open-Meteo's open-source atmospheric API, WMO (World Meteorological Organization) weather codes, and FAO-56 Penman-Monteith agrometeorological algorithms. Data is refreshed every 15 minutes.",
     "done": "Done"
+  },
+  "cropPlanning": {
+    "title": "Seasonal Crop Planning & Market Intelligence",
+    "subtitle": "Agronomic matching, authentic AGMARKNET mandi rates, and CACP cultivation profit analysis",
+    "spotlightTag": "Market Intelligence",
+    "spotlightTitle": "Seasonal Crop Planning & Real Mandi Prices",
+    "spotlightDesc": "Plan high-yielding crops for your soil and season, check live AGMARKNET mandi prices, and calculate cultivation expenditure, yield scenarios, and net profit.",
+    "openPlanner": "Explore Crop Planning",
+    "editProfile": "Edit Field Profile",
+    "recommendationsTab": "Crop Recommendations",
+    "calculatorTab": "Cost & Profit Calculator",
+    "mandiTab": "Mandi Wholesale Prices",
+    "comparatorTab": "Compare Crops",
+    "recommendationsSubtitle": "Ranked by composite soil, climate, water, and agronomic university calibration",
+    "mspGuaranteed": "CCEA MSP Guaranteed",
+    "breakEven": "Break-Even Price",
+    "netProfit": "Estimated Net Profit"
   },
   "footer": {
     "desc": "A high-precision agrometeorological platform designed for farmers, agronomists, and researchers. Synthesizes atmospheric data, soil thermodynamics, and numerical forecasts to guide daily farm decisions.",

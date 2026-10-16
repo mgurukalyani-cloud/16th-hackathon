@@ -9,7 +9,8 @@ import {
   ScanLine,
   LayoutDashboard,
   Sparkles,
-  Mic
+  Mic,
+  Sprout
 } from 'lucide-react';
 
 export default function NavigationTabs({ activeTab, onChangeTab, advisorScore = 85 }) {
@@ -52,6 +53,13 @@ export default function NavigationTabs({ activeTab, onChangeTab, advisorScore = 
       badge: 'AI Vision'
     },
     {
+      id: 'crop_planning',
+      label: t('app.cropPlanning', 'Crop Planning'),
+      sublabel: 'Mandi & Profit AI',
+      icon: Sprout,
+      badge: 'Market AI'
+    },
+    {
       id: 'farm_insights',
       label: t('app.farmInsights', 'Farm Insights'),
       sublabel: 'Agronomic Advisor',
@@ -69,7 +77,7 @@ export default function NavigationTabs({ activeTab, onChangeTab, advisorScore = 
 
   return (
     <div className="w-full bg-white/90 backdrop-blur-md rounded-2xl p-1.5 sm:p-2 border border-emerald-900/10 shadow-xs">
-      <nav className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-1.5 sm:gap-2" aria-label="Smart Agriculture Navigation Tabs">
+      <nav className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-1.5 sm:gap-2" aria-label="Smart Agriculture Navigation Tabs">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
